@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../models/character.dart';
@@ -14,6 +15,8 @@ class _HomeScreenState extends State<HomeScreen> {
   int currentPage = 1;
   bool isLoading = false;
   final ScrollController _scrollController = ScrollController();
+  String searchQuery = "";
+  Timer? _debounce;
 
   @override
   void initState() {
@@ -27,21 +30,66 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  Future<void> fetchData() async {
+  Future<void> fetchData({bool reset = false}) async {
     if (isLoading) return;
     setState(() => isLoading = true);
-    final newCharacters = await ApiService.fetchCharacters(currentPage);
-    setState(() {
-      characters.addAll(newCharacters);
-      currentPage++;
-      isLoading = false;
+
+    if (reset) {
+      currentPage = 1;
+      characters.clear();
+    }
+
+    try {
+      final newCharacters = await ApiService.fetchCharacters(
+        page: currentPage,
+        query: searchQuery,
+      );
+      setState(() {
+        characters.addAll(newCharacters);
+        currentPage++;
+      });
+    } catch (e) {
+      if (reset) {
+        setState(() {
+          characters.clear();
+        });
+      }
+    }
+
+    setState(() => isLoading = false);
+  }
+
+  void onSearchChanged(String query) {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      setState(() {
+        searchQuery = query;
+      });
+      fetchData(reset: true);
     });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _debounce?.cancel();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Rick and Morty")),
+      appBar: AppBar(
+        title: TextField(
+          style: const TextStyle(color: Colors.white),
+          decoration: const InputDecoration(
+            hintText: "Поиск персонажей...",
+            hintStyle: TextStyle(color: Colors.white70),
+            border: InputBorder.none,
+          ),
+          onChanged: onSearchChanged,
+        ),
+      ),
       body: ListView.separated(
         controller: _scrollController,
         itemCount: characters.length + 1,
@@ -51,6 +99,7 @@ class _HomeScreenState extends State<HomeScreen> {
             final character = characters[index];
             return CharacterCard(
               character: character,
+              highlight: searchQuery, // подсветка
               onTap: () {
                 Navigator.push(
                   context,

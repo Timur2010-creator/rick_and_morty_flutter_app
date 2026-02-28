@@ -13,7 +13,18 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: "Rick and Morty",
-      theme: ThemeData(primarySwatch: Colors.green),
+      theme: ThemeData(
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: Colors.grey[900], // тёмно‑серый фон
+        cardColor: Colors.grey[850],
+        textTheme: const TextTheme(
+          bodyMedium: TextStyle(color: Colors.white), // белый текст
+        ),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.black,
+          foregroundColor: Colors.white,
+        ),
+      ),
       home: HomeScreen(),
     );
   }
